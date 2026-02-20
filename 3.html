@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Аналіз процесів плавлення</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .option-btn:disabled { cursor: not-allowed; }
+        .hidden { display: none; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade { animation: fadeIn 0.4s ease-out forwards; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4 font-sans text-slate-900">
+
+    <div id="app" class="w-full max-w-2xl bg-white rounded-2xl shadow-xl border-t-4 border-orange-500 overflow-hidden">
+        <!-- Header -->
+        <div class="p-6 text-center border-b border-slate-100">
+            <h1 class="text-2xl font-bold text-orange-800">Аналіз процесів плавлення</h1>
+            <p class="text-slate-500 italic text-sm md:text-base">Температура плавлення та питома теплота плавлення &lambda;</p>
+        </div>
+
+        <div class="p-6 space-y-6">
+            <!-- Graph Visual -->
+            <div class="relative w-full h-64 bg-white border rounded-xl p-2 flex items-center justify-center shadow-inner overflow-hidden">
+                <svg class="w-full h-full max-w-[500px]" viewBox="0 0 350 200" preserveAspectRatio="xMidYMid meet">
+                    <!-- Grid (Optional for better visual) -->
+                    <line x1="40" y1="20" x2="40" y2="160" stroke="#e2e8f0" stroke-width="1" />
+                    
+                    <!-- Axes -->
+                    <line x1="40" y1="160" x2="320" y2="160" stroke="#1e293b" stroke-width="2" /> <!-- Time axis -->
+                    <line x1="40" y1="20" x2="40" y2="160" stroke="#1e293b" stroke-width="2" /> <!-- Temp axis -->
+                    
+                    <!-- Arrows -->
+                    <polyline points="315,155 320,160 315,165" fill="none" stroke="#1e293b" stroke-width="2" />
+                    <polyline points="35,25 40,20 45,25" fill="none" stroke="#1e293b" stroke-width="2" />
+
+                    <!-- Axis Labels -->
+                    <text x="15" y="25" fill="#475569" font-size="12" font-weight="bold">t, °C</text>
+                    <text x="310" y="180" fill="#475569" font-size="12" font-weight="bold">&tau;, хв</text>
+                    <text x="30" y="175" fill="#475569" font-size="12" font-weight="bold">0</text>
+                    
+                    <!-- Substance 1 (Blue) - High Melting Point, Short segment -->
+                    <path d="M 40,155 L 90,55 L 140,55 L 170,25" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" />
+                    <text x="145" y="50" fill="#2563eb" font-size="14" font-weight="bold">1</text>
+                    
+                    <!-- Substance 2 (Orange) - Mid Melting Point, Mid segment -->
+                    <path d="M 40,155 L 100,105 L 190,105 L 220,65" fill="none" stroke="#ea580c" stroke-width="3" stroke-linecap="round" />
+                    <text x="195" y="100" fill="#ea580c" font-size="14" font-weight="bold">2</text>
+                    
+                    <!-- Substance 3 (Green) - Low Melting Point, Long segment -->
+                    <path d="M 40,155 L 120,135 L 260,135 L 290,105" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round" />
+                    <text x="265" y="130" fill="#16a34a" font-size="14" font-weight="bold">3</text>
+                </svg>
+            </div>
+
+            <!-- Quiz Content -->
+            <div id="quiz-container">
+                <div id="question-box" class="bg-orange-50 p-5 rounded-xl border border-orange-100 shadow-sm mb-4">
+                    <p id="question-text" class="font-semibold text-lg leading-snug"></p>
+                </div>
+
+                <div id="options-container" class="grid grid-cols-1 gap-3">
+                    <!-- Options injected here -->
+                </div>
+
+                <div id="feedback" class="mt-4 p-5 rounded-xl hidden animate-fade">
+                    <div class="flex items-start space-x-4">
+                        <div id="feedback-icon"></div>
+                        <div>
+                            <p id="feedback-title" class="font-bold text-lg"></p>
+                            <p id="feedback-text" class="text-slate-700 mt-2 leading-relaxed"></p>
+                            <button id="next-btn" class="mt-5 bg-orange-700 hover:bg-orange-800 text-white rounded-lg px-6 py-2 transition-colors">Далі</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results View -->
+            <div id="results-container" class="hidden text-center py-10 space-y-8 animate-fade">
+                <div class="flex justify-center">
+                    <div class="relative w-40 h-40">
+                        <svg class="w-full h-full transform -rotate-90">
+                            <circle cx="80" cy="80" r="70" stroke="#f1f5f9" stroke-width="12" fill="transparent" />
+                            <circle id="progress-circle" cx="80" cy="80" r="70" stroke="#f59e0b" stroke-width="12" fill="transparent" stroke-dasharray="440" stroke-dashoffset="440" stroke-linecap="round" />
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <span id="final-percentage" class="text-4xl font-black text-slate-800">0%</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <h3 class="text-3xl font-bold text-slate-800">Результат</h3>
+                    <p id="final-score-text" class="text-slate-500 text-lg"></p>
+                </div>
+                <button onclick="location.reload()" class="flex items-center space-x-2 bg-orange-700 hover:bg-orange-800 text-white px-8 py-4 text-lg rounded-2xl shadow-lg mx-auto transition-transform hover:scale-105">
+                    <span>Почати заново</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Memo Section -->
+        <div id="memo-section" class="mt-4 p-6 bg-slate-50 grid grid-cols-1 md:grid-cols-2 gap-4 border-t">
+            <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-red-400">
+                <p class="text-xs text-slate-600">
+                    <strong>t плавлення:</strong> Це температура горизонтальної ділянки. Чим вище лінія, тим вища <i>t</i><sub>пл</sub>.
+                </p>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-green-400">
+                <p class="text-xs text-slate-600">
+                    <strong>Питома теплота &lambda;:</strong> На графіку це довжина горизонтальної лінії. Довша лінія — більше &lambda; (при однакових <i>m</i>).
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const questions = [
+            {
+                text: "Яка з речовин має найнижчу температуру плавлення?",
+                options: ["Речовина 1", "Речовина 2", "Речовина 3"],
+                correct: 2,
+                explanation: "Температура плавлення відповідає висоті горизонтальної ділянки. У речовини 3 ця ділянка знаходиться найнижче по осі t."
+            },
+            {
+                text: "Яка речовина потребує найбільше теплоти для повного плавлення (за однакових мас)?",
+                options: ["Речовина 1", "Речовина 2", "Речовина 3"],
+                correct: 2,
+                explanation: "Кількість теплоти Q = λm пропорційна часу плавлення. Речовина 3 має найдовшу горизонтальну ділянку."
+            },
+            {
+                text: "У якої речовини питома теплота плавлення &lambda; є найменшою?",
+                options: ["Речовина 1", "Речовина 2", "Речовина 3"],
+                correct: 0,
+                explanation: "Найменша λ відповідає найкоротшій тривалості процесу плавлення (найкоротша горизонтальна лінія — у речовини 1)."
+            },
+            {
+                text: "Яка речовина почала плавитися при найвищій температурі?",
+                options: ["Речовина 1", "Речовина 2", "Речовина 3"],
+                correct: 0,
+                explanation: "Речовина 1 має найвищий рівень горизонтальної ділянки на осі температур."
+            }
+        ];
+
+        let currentStep = 0;
+        let score = 0;
+
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const feedback = document.getElementById('feedback');
+        const feedbackTitle = document.getElementById('feedback-title');
+        const feedbackText = document.getElementById('feedback-text');
+        const feedbackIcon = document.getElementById('feedback-icon');
+        const nextBtn = document.getElementById('next-btn');
+
+        function loadQuestion() {
+            const q = questions[currentStep];
+            questionText.innerHTML = `<span class="text-orange-600 mr-2">${currentStep + 1}.</span> ${q.text}`;
+            optionsContainer.innerHTML = '';
+            feedback.classList.add('hidden');
+
+            q.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = "option-btn h-14 text-lg text-left px-8 transition-all duration-300 rounded-xl border-2 border-slate-200 bg-white hover:border-orange-400 hover:bg-orange-50 text-slate-700";
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(index);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(index) {
+            const q = questions[currentStep];
+            const btns = optionsContainer.querySelectorAll('button');
+            
+            btns.forEach((btn, i) => {
+                btn.disabled = true;
+                if (i === q.correct) {
+                    btn.className = "option-btn h-14 text-lg text-left px-8 rounded-xl border-2 bg-green-600 text-white border-green-600 shadow-md";
+                } else if (i === index) {
+                    btn.className = "option-btn h-14 text-lg text-left px-8 rounded-xl border-2 bg-red-50 text-red-300 border-red-100";
+                } else {
+                    btn.className = "option-btn h-14 text-lg text-left px-8 rounded-xl border-2 bg-white text-slate-200 border-slate-50";
+                }
+            });
+
+            const isCorrect = index === q.correct;
+            if (isCorrect) score++;
+
+            feedback.classList.remove('hidden');
+            feedback.className = `mt-4 p-5 rounded-xl flex items-start space-x-4 animate-fade ${isCorrect ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`;
+            feedbackTitle.innerText = isCorrect ? "Правильно!" : "Помилка";
+            feedbackTitle.className = `font-bold text-lg ${isCorrect ? 'text-green-800' : 'text-red-800'}`;
+            feedbackText.innerText = q.explanation;
+            feedbackIcon.innerHTML = isCorrect ? 
+                `<svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>` : 
+                `<svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+        }
+
+        nextBtn.onclick = () => {
+            currentStep++;
+            if (currentStep < questions.length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        };
+
+        function showResults() {
+            document.getElementById('quiz-container').classList.add('hidden');
+            document.getElementById('memo-section').classList.add('hidden');
+            const results = document.getElementById('results-container');
+            results.classList.remove('hidden');
+            
+            const percent = Math.round((score / questions.length) * 100);
+            document.getElementById('final-percentage').innerText = percent + '%';
+            document.getElementById('final-score-text').innerText = `Результат: ${score} з ${questions.length}.`;
+            
+            const circle = document.getElementById('progress-circle');
+            const offset = 440 - (440 * score) / questions.length;
+            circle.style.strokeDashoffset = offset;
+        }
+
+        loadQuestion();
+    </script>
+</body>
+</html>
